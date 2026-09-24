@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+
+# C++ / CMake
+build/
+cmake-build-*/
+
+# IDE
+.idea/
+.vscode/

@@ -1,14 +1,17 @@
-from sympy import *
-import sympy
+from typing import Dict, Union
+
+from sympy import Complement, Expr, Reals, Symbol, symbols, sympify
 from sympy.calculus.util import continuous_domain
-from typing import Union, Dict
+
+Number = Union[int, float]
+
 
 class CoreCalc:
 
     @staticmethod
     def _init_symbol(input_variable: str) -> Symbol:
-        # If using multiple variables, seperate via comma in a string --> "x, y, z"
-        return(symbols(input_variable))
+        # If using multiple variables, separate via comma in a string --> "x, y, z"
+        return symbols(input_variable)
 
     def __init__(self, input_func: str) -> None:
         if not isinstance(input_func, str):
@@ -17,85 +20,77 @@ class CoreCalc:
         self.expression = sympify(input_func)
 
     def differentiate(self) -> Expr:
-        return sympify(self.expression.diff())
+        return self.expression.diff()
 
     def antidifferentiate(self) -> Expr:
-        return sympify(self.expression.integrate())
+        return self.expression.integrate()
 
-    def evaluate(self, val_dictionary: Dict[str, Union[int, float]]) -> Union[int, float]:
+    def evaluate(self, val_dictionary: Dict[str, Number]) -> Expr:
         return self.expression.subs(val_dictionary)
 
-    def domain(self, *symbols: str) -> set:
+    def domain(self, *variables: str) -> set:
         # With no params, will automatically assume you are using "x"
-        if not symbols:
-            symbols = set(["x"])
+        if not variables:
+            variables = ("x",)
 
-        domain = sympy.Reals
-        for symbol in symbols:
-            symbol = self._init_symbol(symbol)
-            this_domain = continuous_domain(self.expression, symbol, sympy.Reals)
-            domain = domain.intersection(this_domain)
+        # Domain is where the function is continuous in every variable
+        domain = Reals
+        for variable in variables:
+            symbol = self._init_symbol(variable)
+            domain = domain.intersection(continuous_domain(self.expression, symbol, Reals))
 
         return domain
 
-    def find_undefined(self, *symbols: str) -> set:
-        domain = self.domain(*symbols)
-        return Complement(sympy.Reals, domain)
+    def find_undefined(self, *variables: str) -> set:
+        return Complement(Reals, self.domain(*variables))
 
-    def newton_method(self, x0: Union[int, float], iterations: int, wrt: str) -> Union[int, float]:
-        # Algorithm for Newton's method of approximating roots
+    def newton_method(self, x0: Number, iterations: int, wrt: str) -> Number:
+        # Algorithm for Newton's method of approximating roots: x_{n+1} = x_n - f(x_n) / f'(x_n)
         if not isinstance(wrt, str):
             raise TypeError("Wrt expression must be a string")
 
-        function_prime = self.expression.diff(wrt)
-
-        if x0 not in self.domain():
+        if x0 not in self.domain(wrt):
             raise ValueError("x0 is not in the domain of the function; try another value")
 
-        for iteration in range(iterations):
+        function_prime = self.expression.diff(wrt)
+
+        for _ in range(iterations):
             evaluated_prime = function_prime.evalf(subs={wrt: x0})
             evaluated_function = self.expression.evalf(subs={wrt: x0})
 
             if evaluated_prime == 0:
                 raise ValueError("Evaluated prime was zero; try another value")
 
-            new_x = x0 - (evaluated_function / evaluated_prime)
-            x0 = new_x
+            x0 = x0 - (evaluated_function / evaluated_prime)
 
-        return new_x
+        return x0
 
-    def linearize(self, a: Union[int, float], wrt: str) -> Expr:
-        # First expansion of Taylor series; linear approximation technique
+    def linearize(self, a: Number, wrt: str) -> Expr:
+        # First expansion of Taylor series; linear approximation technique: L(x) = f(a) + f'(a)(x - a)
         if not isinstance(wrt, str):
             raise TypeError("Wrt expression must be a string")
 
-        wrt = self._init_symbol(wrt)
-
-        if a not in self.domain():
+        if a not in self.domain(wrt):
             raise ValueError("Input value was not in domain; try another value")
+
+        wrt = self._init_symbol(wrt)
 
         foa = self.expression.evalf(subs={wrt: a})
         fpoa = self.expression.diff(wrt).evalf(subs={wrt: a})
 
-        linearized_function = sympify(f"{foa} + {fpoa} * ({wrt} - {a})")
-        return linearized_function
+        return foa + fpoa * (wrt - a)
 
     @staticmethod
-    def factorialRun(num: int) -> int:
-        # Calculates the factorial of a number (from an older project I wrote) --> static function
-        factorialNum = 1
-
-        if num == 0 or num == 1:
-            return factorialNum
-
+    def factorial_run(num: int) -> int:
+        # Calculates the factorial of a number (from an older project I wrote)
         if num < 0:
-            raise Exception("Factorial operand not defined for numbers below zero")
+            raise ValueError("Factorial operand not defined for numbers below zero")
 
-        for nextNum in range(2, num + 1):
-            factorialNum *= nextNum
+        factorial_num = 1
+        for next_num in range(2, num + 1):
+            factorial_num *= next_num
 
-        return factorialNum
-
+        return factorial_num
 
     def to_string(self) -> str:
         return str(self.expression)

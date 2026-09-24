@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 #include "LinearAlgebra.h"
 
@@ -92,7 +93,7 @@ int main()
     {
         std::cout << LinearAlgebra::determinant(non_square_matrix) << std::endl;
     }
-    catch (std::invalid_argument)
+    catch (const std::invalid_argument&)
     {
         std::cout << "We can't take the determinant of a non-square matrix... so we threw an exception" << std::endl;
     }
@@ -102,7 +103,7 @@ int main()
     {
         std::cout << LinearAlgebra::determinant(dead_matrix) << std::endl;
     }
-    catch (std::invalid_argument)
+    catch (const std::invalid_argument&)
     {
         std::cout << "We passed an empty matrix... so we threw an exception" << std::endl;
     }
