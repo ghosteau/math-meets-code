@@ -1,8 +1,11 @@
 #include "LinearAlgebra.h"
 
-int LinearAlgebra::determinant(std::vector<std::vector<int>> matrix)
+#include <stdexcept>
+
+// Determinant via Laplace (cofactor) expansion along the first row
+int LinearAlgebra::determinant(const std::vector<std::vector<int>>& matrix)
 {
-    int n = matrix.size();
+    const size_t n = matrix.size();
 
     // Edge cases
     if (n == 0)
@@ -10,73 +13,57 @@ int LinearAlgebra::determinant(std::vector<std::vector<int>> matrix)
         throw std::invalid_argument("Empty matrix passed as argument");
     }
 
+    // Determinant is only defined for n x n matrices
+    for (const std::vector<int>& row : matrix)
+    {
+        if (row.size() != n)
+        {
+            throw std::invalid_argument("Rows and columns have to have the same dimensions");
+        }
+    }
+
     if (n == 1)
     {
         return matrix[0][0];
     }
 
-    // Determinant is only defined for n x n matrices
-    if (matrix.size() != matrix[0].size())
-    {
-        throw std::invalid_argument("Rows and columns have to have the same dimensions");
-    }
-
-    // Technically LaPlace expansion would break down 2 x 2 matrices into their respective cofactors as well, but this simple formula works much easier
+    // Technically Laplace expansion would break down 2 x 2 matrices into their respective cofactors as well, but this simple formula works much easier
     // This is our real base-case
     if (n == 2)
     {
         return (matrix[0][0] * matrix[1][1]) - (matrix[0][1] * matrix[1][0]);
     }
 
-    // Go across columns
-    std::vector<int> cols = matrix[0];
-    std::vector<int> terms;
+    int determinant = 0;
 
-    // We need this outer loop to make sure we find every single necessary term, not just one
-    for (int j = 0; j < n; j++)
+    // We need this loop to make sure we find every single necessary term, not just one
+    for (size_t j = 0; j < n; j++)
     {
-        int cofactor = cols[j];
+        int cofactor = matrix[0][j];
 
-        // We will be expanding down row one always for this implementation... so that means 'i' (from the formula) will always equal 1
-        // We add 1 to j because j starts at zero in our program, but in the formula j starts at 1. We could simplify the if to just be j % 2 using this fact if we wanted
-        // Anyways, all we gotta do is check if we have an odd power and then apply the negation if so
-        if (((j + 1) + 1) % 2 != 0)
+        // We will be expanding down row one always, so the sign is (-1)^(1 + (j + 1)), which is negative whenever j is odd
+        if (j % 2 != 0)
         {
-            cofactor = -(cofactor);
+            cofactor = -cofactor;
         }
 
-        // Find the minor matrix (that we have to take the determinant of)
+        // Find the minor matrix (that we have to take the determinant of): drop row 0 and column j
         std::vector<std::vector<int>> minor;
-        for (int k = 0; k < n; k++)
+        for (size_t k = 1; k < n; k++)
         {
-            if (k == 0)
-            {
-                continue;
-            }
-
             std::vector<int> row;
-            for (int l = 0; l < n; l++)
+            for (size_t l = 0; l < n; l++)
             {
-                if (l == j)
+                if (l != j)
                 {
-                    continue;
+                    row.push_back(matrix[k][l]);
                 }
-
-                row.push_back(matrix[k][l]);
             }
 
             minor.push_back(row);
         }
 
-        terms.push_back(cofactor * determinant(minor));
-    }
-
-    // Because we just stored all of the terms in an array, we can just go through and add each one up per the formula
-    // This seemed like the easiest way to go about it to me (with LaPlace Expansion), but I am sure there are others
-    int determinant = 0;
-    for (int term : terms)
-    {
-        determinant += term;
+        determinant += cofactor * LinearAlgebra::determinant(minor);
     }
 
     return determinant;
